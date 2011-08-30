@@ -283,9 +283,9 @@ leader_cast(Name, Request) ->
     ok.
 
 
-do_cast(Tag, Name, Request) when atom(Name) ->
+do_cast(Tag, Name, Request) when is_atom(Name) ->
     Name ! {Tag, Request};
-do_cast(Tag, Pid, Request) when pid(Pid) ->
+do_cast(Tag, Pid, Request) when is_pid(Pid) ->
     Pid ! {Tag, Request}.
 
 

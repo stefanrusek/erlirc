@@ -241,9 +241,6 @@ new_client(Parent, _ListenSock, ClientSock) ->
             exit(Else)
     end.
 
-handle_new_client(ok) -> ok;
-handle_new_client(Error) -> {error, {client_handler, Error}}.
-
 
 gen_tcp_options(Options) ->
     lists:filter(fun (O) -> my_option(O) =:= false end,

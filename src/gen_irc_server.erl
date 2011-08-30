@@ -46,7 +46,9 @@ behaviour_info(_) ->
 %% API
 %%====================================================================
 %%--------------------------------------------------------------------
-%% @spec start_link() -> {ok,Pid} | ignore | {error,Error}
+%% @spec start_link(Module, Net, Server, Args) -> {ok,Pid} |
+%%                                                ignore |
+%%                                                {error,Error}
 %% @doc Starts the server
 %% @end
 %%--------------------------------------------------------------------
@@ -88,7 +90,7 @@ new_client(Server, Socket, IrcServer) ->
 %% @type user() = #user{}.
 %% @type numeric() = atom() | integer().
 
-%% @spec change_nick(user(), NewNick::string(), Password::string()) -> Result
+%% @spec nick(user(), NewNick::string(), Password::string()) -> Result
 %%   Result = {ok, NewUser::user()} | {error, numeric(), Reason::string()}
 nick(Server, NewNick, Password) ->
     gen_server:call(Server, {nick, self(), NewNick, Password}).

@@ -1,7 +1,8 @@
-ebin/*.beam
+/ebin
+/src/TAGS
+/priv/log/*
+/doc/*
+/misc/*
+/erl_crash.dump
 *~
-src/TAGS
-priv/log/*
-doc/*
-misc/*
-erl_crash.dump
+*.sw?
