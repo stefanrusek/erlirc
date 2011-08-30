@@ -106,10 +106,7 @@ is_digit(D) when ?IS_DIGIT(D) ->
 is_digit(_) -> false.
 
 %% No newline (nonl)
-nonl([$\r,$\n]) -> [];
-nonl([$\n]) -> [];
-nonl([]) -> [];
-nonl([H|T]) -> [H|nonl(T)].
+nonl(L) -> lists:takeWhile(fun(C) -> C /= $\r and C /= $\n).
 
 join(_, []) ->
     [];
