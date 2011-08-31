@@ -9,9 +9,9 @@
 
 -record(user, {nick,
                nick_ts,
-               name = "missingname",
-               realname = "missingrealname",
-               host = "missinghost",
+               name = [],
+               realname = [],
+               host = [],
                mode,
                description,
                pid,

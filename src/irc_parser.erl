@@ -14,76 +14,51 @@
 -define(IS_DIGIT(Var), $0 =< Var, Var =< $9).
 
 parse_line(Line) ->
-    parse_line(Line, #irc_cmd{raw=Line}).
+    Message = nonl(Line),
+    message(Message, #irc_cmd{raw=Message}).
 
-parse_line(Line = [$E,$R,$R,$O,$R,$\s|_], Cmd) ->
-    parse_command_part(Line, Cmd);
-parse_line([A,B,$\s|Rest], Cmd) when ((A == $[) or (A == $]) or
-                                      (($0 =< A) and (A =< $9)) or
-                                      (($a =< A) and (A =< $z)) or
-                                      (($A =< A) and (A =< $Z))),
-                                     ((B == $[) or (B == $]) or
-                                      (($0 =< B) and (B =< $9)) or
-                                      (($a =< B) and (B =< $z)) or
-                                      (($A =< B) and (B =< $Z))) ->
-    parse_command_part(Rest, Cmd#irc_cmd{source=#p10server{numeric=irc_numerics:p10b64_to_int([A,B])}});
-parse_line([A,B,C,D,E,$\s|Rest], Cmd) ->
-    case irc_numerics:p10b64_to_int([A,B,C,D,E]) of 
-        Num when is_integer(Num) ->
-            parse_command_part(Rest, Cmd#irc_cmd{source=#p10user{numeric=Num}});
-        {error, Reason} ->
-            ?ERR("Need to fix this code.", []),
-            erlang:error(Reason)
-    end;
-parse_line([$:|Rest], Cmd) ->
-    parse_prefix_part(Rest, Cmd);
-parse_line(Line, Cmd) ->
-    parse_command_part(Line, Cmd).
-
-parse_prefix_part(Line, Cmd) ->
+message([$:|Line], Cmd) ->
     {Prefix, Rest} = split(Line),
-    CmdWithUser = parse_prefix(Prefix, Cmd#irc_cmd{source=#user{}}),
-    parse_command_part(Rest, CmdWithUser).
+    CmdWithSource = prefix(Prefix, Cmd),
+    message(Rest, CmdWithSource);
+message(Line, Cmd) ->
+    {CmdString, Rest} = split(Line),
+    CmdWithCmd = command(CmdString, Cmd),
+    params(Rest, CmdWithCmd).
 
-parse_prefix(Prefix, #irc_cmd{source=User} = Cmd) ->
-    case string:tokens(Prefix, "@") of
-        [Nick] -> 
-            case lists:member($., Prefix) of
-                true ->
-                    Cmd#irc_cmd{source=#irc_server{host=Nick}};
-                false ->
-                    Cmd#irc_cmd{source=User#user{nick=Nick}}
+prefix(Prefix, Cmd) ->
+    case split($@, Prefix) of
+        {Name, []} ->
+            case lists:member($., Name) of
+                true -> Source = #irc_server{host=Name};
+                false -> Source = #user{nick=Name}
             end;
-        [NickSpec, HostSpec] -> 
-            case string:tokens(NickSpec, "!") of
-                [Nick, [$~|HostUser]] ->
-                    Cmd#irc_cmd{source=User#user{nick=Nick, name=HostUser, host=HostSpec}};
-                [Nick, HostUser] ->
-                    Cmd#irc_cmd{source=User#user{nick=Nick, name=HostUser, host=HostSpec}};
-                [_Host] ->
-                    Cmd#irc_cmd{source=User#user{nick=NickSpec, host=HostSpec}}
-            end
-    end.
+        {Name, Host} ->
+            {Nick, User} = split($!, Name),
+            Source = #user{nick=Nick, name=User, host=Host}
+    end,
+    Cmd#irc_cmd{source=Source}.
 
-parse_command_part([D1,D2,D3,$\s|Rest], Cmd) when ?IS_DIGIT(D1),
-                                              ?IS_DIGIT(D2),
-                                              ?IS_DIGIT(D3) ->
-    Cmd#irc_cmd{name=irc_numerics:numeric_to_atom([D1,D2,D3]),
-            args=nonl(Rest)};
-parse_command_part([D1,D2,D3|Rest], Cmd) when ?IS_DIGIT(D1),
-                                              ?IS_DIGIT(D2),
-                                              ?IS_DIGIT(D3) ->
-    Cmd#irc_cmd{name=irc_numerics:numeric_to_atom([D1,D2,D3]),
-                args=nonl(Rest)};
-parse_command_part(Rest, Cmd) ->
-    case split(Rest) of
-        {CommandName, ""} ->
-            Cmd#irc_cmd{name=irc_commands:from_list(nonl(CommandName)),
-                        args=[]};
-        {CommandName, Args} ->
-            Cmd#irc_cmd{name=irc_commands:from_list(CommandName),
-                        args=nonl(Args)}
-    end.
+command(Num = [D1,D2,D2], Cmd) when ?IS_DIGIT(D1),
+                                    ?IS_DIGIT(D2),
+                                    ?IS_DIGIT(D2) ->
+    Cmd#irc_cmd{name=irc_numerics:numeric_to_atom(Num)};
+command(Name, Cmd) ->
+    Cmd#irc_cmd{name=irc_commands:from_list(Name)}.
+
+params(Rest, Cmd) ->
+    Args = param(Rest, 14, Cmd),
+    Cmd#irc_cmd{args = lists:reverse(Args)}.
+
+param([], _N, Args) ->
+    Args;
+param([$:|Line], _N, Args) ->
+    [Line|Args];
+param(Line, 0, Args) ->
+    [Line|Args];
+param(Line, N, Args) ->
+    {Arg, Rest} = split(Line),
+    param(Rest, N-1, [Arg|Args]).
 
 split(Line) ->
     split($\s, Line).
@@ -106,7 +81,7 @@ is_digit(D) when ?IS_DIGIT(D) ->
 is_digit(_) -> false.
 
 %% No newline (nonl)
-nonl(L) -> lists:takeWhile(fun(C) -> C /= $\r and C /= $\n).
+nonl(L) -> lists:takewhile(fun(C) -> ((C /= $\r) and (C /= $\n)) end, L).
 
 join(_, []) ->
     [];
