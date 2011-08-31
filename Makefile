@@ -3,27 +3,25 @@ ERL          ?= erl
 EBIN_DIRS    := $(wildcard lib/*/ebin)
 APP          := erlirc
 
-all: erl ebin/$(APP).app
+all: compile
 
-erl: ebin lib
-	@$(ERL) -pa $(EBIN_DIRS) -noinput +B \
-	  -eval 'case make:all() of up_to_date -> halt(0); error -> halt(1) end.'
+compile:
+	rebar compile
 
 docs:
-	@erl -noshell -run edoc_run application '$(APP)' '"."' '[]'
+	rebar skip_deps=true doc
 
 clean: 
 	@echo "removing:"
-	@rm -fv ebin/*.beam ebin/*.app
+	rebar clean
 
-ebin/$(APP).app: src/$(APP).app
-	@cp -v src/$(APP).app $@
+build-plt:
+	dialyzer --build_plt -r deps -r src --output_plt erlirc_dialyzer.plt \
+		--apps kernel crypto stdlib sasl inets
 
-ebin:
-	@mkdir ebin
+dialyze: dialyze-erlirc
 
-lib:
-	@mkdir lib
+dialyze-erlirc:
+	dialyzer --src -r src --plt erlirc_dialyzer.plt \
+	-Werror_handling -Wrace_conditions -Wbehaviours
 
-dialyzer: erl
-	@dialyzer -c ebin
