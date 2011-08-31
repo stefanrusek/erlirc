@@ -1,7 +1,13 @@
-%%% File    : irc_parser.erl
-%%% Author  : Geoff Cant <nem@lisp.geek.nz>
-%%% Description : 
-%%% Created : 27 Mar 2006 by Geoff Cant <nem@lisp.geek.nz>
+%%%------------------------------------------------------------------
+%% @copyright 2006-2011 the authors. See COPYRIGHT for details.
+%% @author Geoff Cant <geoff@catalyst.net.nz>
+%% @author Sean hunt <scshunt@csclub.uwaterloo.ca>
+%% @version {@vsn}, {@date} {@time}
+%% @doc Basic IRC protocol parser. It approximates the ABNF in
+%%      RFC 2812.
+%% @end
+%%%------------------------------------------------------------------
+
 
 -module(irc_parser).
 
@@ -9,14 +15,30 @@
 -include_lib("logging.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
--compile(export_all).
+-export([parse_line/1]).
 
 -define(IS_DIGIT(Var), $0 =< Var, Var =< $9).
 
+%%====================================================================
+%% API
+%%====================================================================
+
+%%%------------------------------------------------------------------
+%% @spec parse_line(Line::string()) -> #irc_cmd{}
+%% @doc Parses Line into an irc_cmd record. If the line cannot be
+%%      parsed, then it may silently succeed or crash depending on
+%%      the nature of the error. Any text after the first newline
+%%      character in Line is ignored.
+%%%------------------------------------------------------------------
 parse_line(Line) ->
     Message = nonl(Line),
     message(Message, #irc_cmd{raw=Message}).
 
+%%====================================================================
+%% Internal Functions
+%%====================================================================
+
+%% Parse a full message.
 message([$:|Line], Cmd) ->
     {Prefix, Rest} = split(Line),
     CmdWithSource = prefix(Prefix, Cmd),
@@ -26,6 +48,7 @@ message(Line, Cmd) ->
     CmdWithCmd = command(CmdString, Cmd),
     params(Rest, CmdWithCmd).
 
+%% Parse a source prefix.
 prefix(Prefix, Cmd) ->
     case split($@, Prefix) of
         {Name, []} ->
@@ -39,6 +62,7 @@ prefix(Prefix, Cmd) ->
     end,
     Cmd#irc_cmd{source=Source}.
 
+%% Parse the command name or number.
 command(Num = [D1,D2,D2], Cmd) when ?IS_DIGIT(D1),
                                     ?IS_DIGIT(D2),
                                     ?IS_DIGIT(D2) ->
@@ -46,10 +70,12 @@ command(Num = [D1,D2,D2], Cmd) when ?IS_DIGIT(D1),
 command(Name, Cmd) ->
     Cmd#irc_cmd{name=irc_commands:from_list(Name)}.
 
+%% Parse the parameters.
 params(Rest, Cmd) ->
     Args = param(Rest, 14, Cmd),
     Cmd#irc_cmd{args = lists:reverse(Args)}.
 
+%% Parse one parameter, including the full trailing parameter.
 param([], _N, Args) ->
     Args;
 param([$:|Line], _N, Args) ->
@@ -60,9 +86,13 @@ param(Line, N, Args) ->
     {Arg, Rest} = split(Line),
     param(Rest, N-1, [Arg|Args]).
 
+%% Split a line at the first space
 split(Line) ->
     split($\s, Line).
 
+%% Split a line at the first space or point where the fun first fails.
+%% Like lists:splitwith, but it drops the matching character entirely
+%% rather than leaving it in the second string.
 split(Char, Line) when is_integer(Char) ->
     split(fun (X) when X == Char -> false; (_) -> true end, Line);
 split(Fun, Line) when is_function(Fun) ->
@@ -73,34 +103,5 @@ split(Fun, Line) when is_function(Fun) ->
             {First, []}
     end.
     
-split_test() ->
-    ?assertMatch({"this", "is a test"}, split("this is a test")).
-
-is_digit(D) when ?IS_DIGIT(D) ->
-    true;
-is_digit(_) -> false.
-
-%% No newline (nonl)
+%% Retrieve the part of the line up to the first newline character.
 nonl(L) -> lists:takewhile(fun(C) -> ((C /= $\r) and (C /= $\n)) end, L).
-
-join(_, []) ->
-    [];
-join(_, [String]) when is_list(String) ->
-    String;
-join(Sep, Strings) when is_integer(Sep) ->
-    join([Sep], Strings);
-join(Sep, Strings) when is_list(Sep), length(Strings) > 1 ->
-     join(Sep, tl(Strings), [hd(Strings)]).
-
-join(_Sep, [], Acc) ->
-    lists:append(lists:reverse(Acc));
-join(Sep, [Hd|Tl], Acc) ->
-    join(Sep, Tl, [Hd,Sep|Acc]).
-
-join_test() ->
-    ?assertMatch("This is a test.",
-                 join($\s, ["This", "is", "a", "test."])).
-
-join_2_test() ->
-    ?assertMatch("This",
-                 join($\s, ["This"])).
