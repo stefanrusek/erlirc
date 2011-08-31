@@ -273,7 +273,7 @@ join([Channel | Rest], S) ->
     Ref = erlang:monitor(process, Server),
     Server ! gen_irc:msg(channel, Ref, nick(S), {join, Channel}),
     receive
-        {irc, channel, Ref, {Pid, Channel}, {joined, Topic, Mode, Who}} ->
+        {irc, channel, Ref, {Pid, Channel}, {joined, _Topic, Mode, Who}} ->
             erlang:monitor(process, Pid), % Monitor channel
             csend(S, #irc_cmd{name=join, target=S#state.user,
                               args=[{channels, [Channel]}]}),
@@ -301,11 +301,11 @@ chan(Chan, #state{chans=Chans}) ->
         false -> undefined
     end.
 
-chanpid(Chan, State) ->
-    case chan(Chan, State) of
-        undefined -> undefined;
-        C -> C#chan.pid
-    end.
+%% chanpid(Chan, State) ->
+%%     case chan(Chan, State) of
+%%         undefined -> undefined;
+%%         C -> C#chan.pid
+%%     end.
 
 numreply(Where, Numeric, Message) when is_atom(Numeric) ->
     csend(Where, #irc_cmd{name=Numeric, args=[{message, Message}]}).
