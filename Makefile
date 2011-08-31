@@ -23,6 +23,9 @@ clean:
 	@echo "removing:"
 	rebar clean
 
+xref: compile
+	rebar skip_deps=true xref
+
 build-plt:
 	dialyzer --build_plt -r deps -r src --output_plt erlirc_dialyzer.plt \
 		--apps kernel crypto stdlib sasl inets
