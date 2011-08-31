@@ -11,7 +11,10 @@
 
 -include_lib("logging.hrl").
 -include_lib("irc.hrl").
+
+-ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
+-endif.
 
 %% API
 -export([start_link/2
@@ -244,6 +247,8 @@ send(Msg, {To, _Nick}) when is_pid(To); is_atom(To) ->
 send(Msg, To) when is_pid(To); is_atom(To) ->
     To ! Msg.    
 
+-ifdef(EUNIT).
+
 find_member_test() ->
     Members1 = [],
     Member1Ref = make_ref(),
@@ -272,3 +277,46 @@ find_member_test() ->
                  find_member({Member2Pid,"Bar"},Members3)),
     ?assertMatch(#member{ref=R} when R =:= Member2Ref,
                  find_member(Member2Ref, Members3)).
+
+channel_test() ->
+    {ok, Pid} = irc_channel:start_link("example", "example"),
+    Self = self(),
+    Ref1 = make_ref(),
+    Pid ! {irc, channel, Ref1, {Self, "test"}, join},
+    receive
+        {irc, channel, Ref1, {Pid, "example"},
+         {joined, undefined, _, [{"test", op}]}} ->
+            ?assert(true);
+        Other ->
+            ?ERR("Got ~p", [Other]),
+            ?assert(false)
+    after 1000 ->
+            ?assert(false)
+    end,
+    Ref2 = make_ref(),
+    Pid ! {irc, channel, Ref2, {Self, "test"}, join},
+    receive
+        {irc, channel, Ref2, {Pid, "example"},
+         {error, already_joined}} ->
+            ?assert(true);
+        Other2 ->
+            ?ERR("Got ~p", [Other2]),
+            ?assert(false)
+    after 1000 ->
+            ?assert(false)
+    end,
+    Ref3 = make_ref(),
+    Pid ! {irc, channel, Ref3, Self, {msg, "Hi."}},
+    receive
+        {irc, channel, Ref3, {Pid, "example"},
+         {msg, "Hi."}} ->
+            ?assert(true);
+        Other3 ->
+            ?ERR("Got ~p", [Other3]),
+            ?assert(false)
+    after 1000 ->
+            ?assert(false)
+    end,
+    irc_channel:shutdown(Pid).
+
+-endif.

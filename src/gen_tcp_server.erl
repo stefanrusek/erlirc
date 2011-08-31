@@ -11,7 +11,10 @@
 -behaviour(gen_server).
 
 -include_lib("logging.hrl").
+
+-ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
+-endif.
 
 %% API
 -export([listen/2
@@ -260,6 +263,8 @@ default_client_handler(Parent, ClientSocket) ->
     Parent ! {?MODULE, new_client, ClientSocket},
     ok.
 
+-ifdef(EUNIT).
+
 gtcps_test() ->
     TestPort = 56432,
     TestValue = "TestValue",
@@ -285,3 +290,5 @@ gtcps_test() ->
             ?assertMatch(no_timeout, timeout)
     end,
     ok = close(Pid).
+
+-endif.
