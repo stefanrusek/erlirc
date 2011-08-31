@@ -15,6 +15,9 @@ deps:
 docs:
 	rebar skip_deps=true doc
 
+eunit:
+	rebar skip_deps=true eunit
+
 distclean: clean
 	@echo "removing deps:"
 	rm -fr deps/*
