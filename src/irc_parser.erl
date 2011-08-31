@@ -7,6 +7,7 @@
 
 -include_lib("irc.hrl").
 -include_lib("logging.hrl").
+
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
 -endif.

@@ -10,7 +10,10 @@
 -behaviour(gen_server).
 
 -include_lib("logging.hrl").
+
+-ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
+-endif.
 
 %% API
 -export([start_link/2

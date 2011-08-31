@@ -7,7 +7,10 @@
 
 -include_lib("irc.hrl").
 -include_lib("logging.hrl").
+
+-ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
+-endif.
 
 -export([numeric_to_atom/1,
          atom_to_numeric/1,
@@ -498,6 +501,12 @@ atom_to_numeric(rpl_eodump) -> "642";
 atom_to_numeric(numericerror) -> "999";
 atom_to_numeric(_) -> atom_not_numeric.
 
+pow(_Num, 0) ->
+    1;
+pow(Num, Exp) ->
+    Num * pow(Num, Exp - 1).
+
+
 %%% P10 Base64
 
 -define(P10Base64Alphabet, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789[]").
@@ -527,6 +536,8 @@ p10b64_to_int([C|Rest]) ->
 p10b64_to_int([]) ->
     0.
 
+-ifdef(EUNIT).
+
 int_to_p10b64_test() ->
     ?assert(int_to_p10b64(0,2) == "AA"),
     ?assert(int_to_p10b64(1,2) == "AB"),
@@ -540,12 +551,14 @@ p10b64_to_int_test() ->
     ?assert(p10b64_to_int("A]]") == 4095),
     ?assert(p10b64_to_int("]]") == 4095).
 
-pow(_Num, 0) ->
-    1;
-pow(Num, Exp) ->
-    Num * pow(Num, Exp - 1).
-
 pow_test() ->
     ?assert(pow(64,0) == 1),
     ?assert(pow(64,1) == 64),
     ?assert(pow(64,2) == 4096).
+
+-endif.
+
+
+
+
+

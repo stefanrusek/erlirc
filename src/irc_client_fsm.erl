@@ -11,8 +11,10 @@
 
 -include_lib("logging.hrl").
 -include_lib("irc.hrl").
--include_lib("eunit/include/eunit.hrl").
 
+-ifdef(TEST).
+-include_lib("eunit/include/eunit.hrl").
+-endif.
 
 %% API
 -export([start_link/2,
