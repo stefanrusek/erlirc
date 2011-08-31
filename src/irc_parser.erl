@@ -7,9 +7,13 @@
 
 -include_lib("irc.hrl").
 -include_lib("logging.hrl").
+-ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
+-endif.
 
--compile(export_all).
+-export([split/1, split/2,
+         join/2,
+         parse_line/1]).
 
 -define(IS_DIGIT(Var), $0 =< Var, Var =< $9).
 
@@ -97,13 +101,6 @@ split(Fun, Line) when is_function(Fun) ->
         {First, []} ->
             {First, []}
     end.
-    
-split_test() ->
-    ?assertMatch({"this", "is a test"}, split("this is a test")).
-
-is_digit(D) when ?IS_DIGIT(D) ->
-    true;
-is_digit(_) -> false.
 
 %% No newline (nonl)
 nonl([$\r,$\n]) -> [];
@@ -125,6 +122,8 @@ join(_Sep, [], Acc) ->
 join(Sep, [Hd|Tl], Acc) ->
     join(Sep, Tl, [Hd,Sep|Acc]).
 
+-ifdef(EUNIT).
+
 join_test() ->
     ?assertMatch("This is a test.",
                  join($\s, ["This", "is", "a", "test."])).
@@ -132,3 +131,9 @@ join_test() ->
 join_2_test() ->
     ?assertMatch("This",
                  join($\s, ["This"])).
+
+    
+split_test() ->
+    ?assertMatch({"this", "is a test"}, split("this is a test")).
+
+-endif.
