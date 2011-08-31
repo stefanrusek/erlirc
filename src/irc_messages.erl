@@ -21,7 +21,10 @@
          to_list/1,
          now_to_unix_ts/1,
          encode_ctcp_delims/1,
-         decode_ctcp_delims/1]).
+         decode_ctcp_delims/1,
+
+         user_to_list/1,
+         numeric_to_list/4, numeric_to_list/5]).
 
 %%====================================================================
 %% API
