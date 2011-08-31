@@ -31,7 +31,8 @@ xref: compile
 
 build-plt:
 	dialyzer --build_plt -r deps -r src --output_plt erlirc_dialyzer.plt \
-		--apps kernel crypto stdlib sasl inets
+		--apps kernel crypto stdlib sasl inets debugger \
+		       compiler edoc tools mnesia ssl
 
 dialyze: dialyze-erlirc
 
