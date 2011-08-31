@@ -5,3 +5,5 @@ priv/log/*
 doc/*
 misc/*
 erl_crash.dump
+/deps
+/ebin/erlirc.app

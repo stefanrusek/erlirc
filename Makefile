@@ -2,14 +2,22 @@ VSN          := 0.1
 ERL          ?= erl
 EBIN_DIRS    := $(wildcard lib/*/ebin)
 APP          := erlirc
+.PHONY: all compile deps docs clean build-plt dialyze dialyze-erlirc
 
 all: compile
 
 compile:
 	rebar compile
 
+deps:
+	rebar get-deps
+
 docs:
 	rebar skip_deps=true doc
+
+distclean: clean
+	@echo "removing deps:"
+	rm -fr deps/*
 
 clean: 
 	@echo "removing:"
