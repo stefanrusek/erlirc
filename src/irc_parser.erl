@@ -1,7 +1,7 @@
 %%%------------------------------------------------------------------
 %% @copyright 2006-2011 the authors. See COPYRIGHT for details.
 %% @author Geoff Cant <geoff@catalyst.net.nz>
-%% @author Sean hunt <scshunt@csclub.uwaterloo.ca>
+%% @author Sean Hunt <scshunt@csclub.uwaterloo.ca>
 %% @version {@vsn}, {@date} {@time}
 %% @doc Basic IRC protocol parser. It approximates the ABNF in
 %%      RFC 2812.
@@ -23,13 +23,14 @@
 %% API
 %%====================================================================
 
-%%%------------------------------------------------------------------
+%%%-------------------------------------------------------------------
 %% @spec parse_line(Line::string()) -> #irc_cmd{}
 %% @doc Parses Line into an irc_cmd record. If the line cannot be
 %%      parsed, then it may silently succeed or crash depending on
 %%      the nature of the error. Any text after the first newline
 %%      character in Line is ignored.
-%%%------------------------------------------------------------------
+%% @end
+%%%-------------------------------------------------------------------
 parse_line(Line) ->
     Message = nonl(Line),
     message(Message, #irc_cmd{raw=Message}).
@@ -38,7 +39,12 @@ parse_line(Line) ->
 %% Internal Functions
 %%====================================================================
 
-%% Parse a full message.
+%%%-------------------------------------------------------------------
+%% @spec message(Line::string(), Cmd::#irc_cmd{}) -> #irc_cmd{}
+%% @private
+%% @doc Parse a full message, updating Cmd with its contents
+%% @end
+%%%-------------------------------------------------------------------
 message([$:|Line], Cmd) ->
     {Prefix, Rest} = split(Line),
     CmdWithSource = prefix(Prefix, Cmd),
