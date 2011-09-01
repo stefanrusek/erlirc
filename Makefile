@@ -7,10 +7,15 @@ all: erl ebin/$(APP).app
 
 erl: ebin lib
 	@$(ERL) -pa $(EBIN_DIRS) -noinput +B \
-	  -eval 'case make:all() of up_to_date -> halt(0); error -> halt(1) end.'
+	    -eval 'case make:all() of up_to_date -> halt(0); error -> halt(1) end.'
 
 docs:
-	@erl -noshell -run edoc_run application '$(APP)' '"."' '[]'
+	@erl -noshell -run edoc_run application '$(APP)' '"."' \
+	    '[{def, {vsn, "$(VSN)"}}]'
+
+docs-private:
+	@erl -noshell -run edoc_run application '$(APP)' '"."' \
+	    '[{def, {vsn, "$(VSN)"}}, {private, true}]'
 
 clean: 
 	@echo "removing:"
@@ -27,3 +32,5 @@ lib:
 
 dialyzer: erl
 	@dialyzer -c ebin
+
+.PHONY: docs docs-private
