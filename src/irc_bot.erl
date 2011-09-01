@@ -178,9 +178,14 @@ handle_client_cmd(Pid, _cmdinfo, #irc_cmd{name=ping,args=[{token, T}]}, S) ->
     irc_connection:send_cmd(Pid, #irc_cmd{name=pong, args=[{token, T}]}),
     {noreply, S};
 
-
-handle_client_cmd(_Pid, #coninfo{host=Host,port=Port}, UnknownCommand, State) ->
-    ?INFO("~s:~p -- unknown command: ~p", [Host, Port, UnknownCommand]),
+handle_client_cmd(_Pid, #coninfo { host = Host, port = Port},
+                  Command, #state { plugin_mgr = undefined } = State) ->
+    ?INFO("~s:~p -- command: ~p", [Host, Port, Command]),    
+    {noreply, State};
+handle_client_cmd(Pid, #coninfo { host = Host, port = Port} = ConnInfo,
+                  Command, #state { plugin_mgr = Mgr } = State) ->
+    irc_bot_plugin_mgr:notify(Mgr, Pid, ConnInfo, Command),
+    ?INFO("~s:~p -- command: ~p", [Host, Port, Command]),
     {noreply, State}.
 
 %%--------------------------------------------------------------------
