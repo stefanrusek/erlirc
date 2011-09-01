@@ -17,17 +17,26 @@
 -endif.
 
 %% API
--export([start_link/3,
-         connect/1, connect/2,
-         connections/0,
-         disconnect/1, disconnect/2]).
+-export([start_link/2,
+         connect/2, connect/3,
+         connections/1,
+         disconnect/2, disconnect/3,
+         add_plugin/3]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
 
--record(state, {conf, connections, plugin_mgr, raw_plugin_mgr}).
--record(conf, {nick, username, realname}).
+-record(conf, {nick     :: string(),
+               username :: string(),
+               realname :: string(),
+               opts     :: [{term(), term()}] }).
+
+-record(state, {conf :: #conf{} ,
+                connections,
+                plugin_mgr :: pid() | atom()
+               }).
+
 -record(coninfo, {host, port}).
 -define(SERVER, ?MODULE).
 
@@ -39,26 +48,31 @@
 %% @doc Starts the server
 %% @end
 %%--------------------------------------------------------------------
-start_link(Nick, Username, Realname) when is_list(Nick), is_list(Username), is_list(Realname) ->
-    gen_server:start_link({local, ?SERVER}, ?MODULE,
-                          [#conf{nick=Nick,
-                                 username=Username,
-                                 realname=Realname}], []).
+start_link(Name, Opts) ->
+    case parse_conf(Opts) of
+        {ok, Conf} ->
+            gen_server:start_link({local, Name}, ?MODULE, [Conf], []);
+        {error, What} ->
+            {error, What}
+    end.
 
-connect(Host) ->
-    connect(Host, 6667).
+connect(Name, Host) ->
+    connect(Name, Host, 6667).
 
-connect(Host, Port) ->
-    gen_server:call(?SERVER, {connect, Host, Port}).
+connect(Name, Host, Port) ->
+    call(Name, {connect, Host, Port}).
 
-connections() ->
-    gen_server:call(?SERVER, connections).
+connections(Name) ->
+    call(Name, connections).
 
-disconnect(Host) ->
-    disconnect(Host, 6667).
+disconnect(Name, Host) ->
+    disconnect(Name, Host, 6667).
 
-disconnect(Host, Port) ->
-    gen_server:call(?SERVER, {disconnect, Host, Port}).
+disconnect(Name, Host, Port) ->
+    call(Name, {disconnect, Host, Port}).
+
+add_plugin(Name, Plugin, Args) ->
+    call(Name, {add_plugin, Plugin, Args}).
 
 %%====================================================================
 %% gen_server callbacks
@@ -73,12 +87,15 @@ disconnect(Host, Port) ->
 %% @end
 %%--------------------------------------------------------------------
 init([Conf]) ->
-    {ok, PluginPid} = gen_event:start_link(),
-    {ok, RawPid} = gen_event:start_link(),
-    {ok, #state{conf=Conf,
-                connections=dict:new(),
-                plugin_mgr=PluginPid,
-                raw_plugin_mgr=RawPid}}.
+    PGMgr = case look_conf(plugin_mgr, Conf) of
+                {ok, Name} ->
+                    Name;
+                undefined ->
+                    undefined
+            end,
+    {ok, #state{ conf=Conf,
+                 connections = dict:new(),
+                 plugin_mgr  = PGMgr }}.
 
 %%--------------------------------------------------------------------
 %% @spec 
@@ -102,6 +119,9 @@ handle_call({disconnect, Host, Port}, _From, State = #state{connections=C}) ->
                        C,
                        Pids),
     {reply, {ok, Pids}, State#state{connections=NewC}};
+handle_call({add_plugin, Plugin, Args}, _From, #state { plugin_mgr = Name } = State) ->
+    Reply = irc_bot_plugin_mgr:add_plugin(Name, Plugin, Args),
+    {reply, Reply, State};
 handle_call(connections, _From, State = #state{connections=C}) ->
     {reply, {ok, dict:to_list(C)}, State};
 handle_call({connect, Host, Port}, _From, State) ->
@@ -186,6 +206,9 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 %%--------------------------------------------------------------------
 
+call(Who, What) ->
+    gen_server:call(Who, What, infinity).
+
 client_cmd(Owner, Cmd) ->
     gen_server:cast(Owner, {client, self(), Cmd}).
 
@@ -193,3 +216,32 @@ nick(#state{conf=Conf}) ->
     nick(Conf);
 nick(#conf{nick=Nick}) ->
     Nick.
+
+
+lookup(K, L) ->
+    case proplists:get_value(K, L) of
+        undefined ->
+            not_found;
+        Otherwise ->
+            {ok, Otherwise}
+    end.
+
+look_conf(K, #conf { opts = Opts }) ->
+    lookup(K, Opts).
+
+parse_conf(PL) ->
+    try
+        {ok, Realname} = lookup(realname, PL),
+        {ok, Username} = lookup(username, PL),
+        {ok, Nick}     = lookup(nick,     PL),
+        #conf { realname = Realname,
+                username = Username,
+                nick     = Nick,
+                opts = PL }
+    catch
+        error:{badmatch, _} ->
+            {error, config_error}
+    end.
+
+
+
