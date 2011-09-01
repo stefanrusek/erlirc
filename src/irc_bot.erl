@@ -174,7 +174,7 @@ handle_client_cmd(_Pid, #coninfo{host=Host,port=Port},
                             proplists:get_value(facility, A),
                             proplists:get_value(text, A)]),
     {noreply, State};
-handle_client_cmd(Pid, _cmdinfo, #irc_cmd{name=ping,args=[{token, T}]}, S) ->
+handle_client_cmd(Pid, _cmdinfo, #irc_cmd{name=ping, args=[{token, T}]}, S) ->
     irc_connection:send_cmd(Pid, #irc_cmd{name=pong, args=[{token, T}]}),
     {noreply, S};
 
@@ -239,10 +239,10 @@ parse_conf(PL) ->
         {ok, Realname} = lookup(realname, PL),
         {ok, Username} = lookup(username, PL),
         {ok, Nick}     = lookup(nick,     PL),
-        #conf { realname = Realname,
-                username = Username,
-                nick     = Nick,
-                opts = PL }
+        {ok, #conf { realname = Realname,
+                     username = Username,
+                     nick     = Nick,
+                     opts = PL }}
     catch
         error:{badmatch, _} ->
             {error, config_error}

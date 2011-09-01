@@ -11,7 +11,7 @@
 -behaviour(supervisor).
 
 %% API
--export([start_link/2]).
+-export([start_link/3]).
 
 %% Supervisor callbacks
 -export([init/1]).
@@ -29,8 +29,8 @@
 %% @spec start_link() -> {ok, Pid} | ignore | {error, Error}
 %% @end
 %%--------------------------------------------------------------------
-start_link(Name, PMgr) ->
-    supervisor:start_link({local, ?SERVER}, ?MODULE, [Name, PMgr]).
+start_link(Name, PMgr, Opts) ->
+    supervisor:start_link({local, ?SERVER}, ?MODULE, [Name, PMgr, Opts]).
 
 %%%===================================================================
 %%% Supervisor callbacks
@@ -49,16 +49,17 @@ start_link(Name, PMgr) ->
 %%                     {error, Reason}
 %% @end
 %%--------------------------------------------------------------------
-init([Name, PlugMgrName]) ->
+init([Name, PlugMgrName, Opts]) ->
     RestartStrategy = one_for_all,
     MaxRestarts = 10,
     MaxSecondsBetweenRestarts = 3600,
 
     SupFlags = {RestartStrategy, MaxRestarts, MaxSecondsBetweenRestarts},
 
-    BotClient = {'IRC Bot', {irc_bot, start_link, [Name, PlugMgrName]},
+    Opts2 = [{plugin_mgr, PlugMgrName} | Opts],
+    BotClient = {'IRC Bot', {irc_bot, start_link, [Name, Opts2]},
                  permanent, 2000, worker, [irc_bot]},
-    PluginMgr = {'Plugin Manager', {irc_bot_plugin_mgr, start_link, [PlugMgrName]},
+    PluginMgr = {'Plugin Manager', {irc_bot_plugin_mgr, start_link, [{local, PlugMgrName}]},
                  permanent, 2000, worker, [irc_bot_plugin_mgr]},
 
     {ok, {SupFlags, [BotClient, PluginMgr]}}.
