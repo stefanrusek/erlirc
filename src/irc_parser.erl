@@ -1,13 +1,7 @@
-%%%------------------------------------------------------------------
-%% @copyright 2006-2011 the authors. See COPYRIGHT for details.
-%% @author Geoff Cant <geoff@catalyst.net.nz>
-%% @author Sean Hunt <scshunt@csclub.uwaterloo.ca>
-%% @version {@vsn}, {@date} {@time}
-%% @doc Basic IRC protocol parser. It approximates the ABNF in
-%%      RFC 2812.
-%% @end
-%%%------------------------------------------------------------------
-
+%%% File    : irc_parser.erl
+%%% Author  : Geoff Cant <nem@lisp.geek.nz>
+%%% Description : 
+%%% Created : 27 Mar 2006 by Geoff Cant <nem@lisp.geek.nz>
 
 -module(irc_parser).
 
@@ -18,90 +12,87 @@
 -include_lib("eunit/include/eunit.hrl").
 -endif.
 
--export([parse_line/1]).
+-export([split/1, split/2,
+         join/2,
+         parse_line/1]).
 
 -define(IS_DIGIT(Var), $0 =< Var, Var =< $9).
 
-%%====================================================================
-%% API
-%%====================================================================
-
-%%%-------------------------------------------------------------------
-%% @spec parse_line(Line::string()) -> #irc_cmd{}
-%% @doc Parses Line into an irc_cmd record. If the line cannot be
-%%      parsed, then it may silently succeed or crash depending on
-%%      the nature of the error. Any text after the first newline
-%%      character in Line is ignored.
-%% @end
-%%%-------------------------------------------------------------------
 parse_line(Line) ->
-    Message = nonl(Line),
-    message(Message, #irc_cmd{raw=Message}).
+    parse_line(Line, #irc_cmd{raw=Line}).
 
-%%====================================================================
-%% Internal Functions
-%%====================================================================
+parse_line(Line = [$E,$R,$R,$O,$R,$\s|_], Cmd) ->
+    parse_command_part(Line, Cmd);
+parse_line([A,B,$\s|Rest], Cmd) when ((A == $[) or (A == $]) or
+                                      (($0 =< A) and (A =< $9)) or
+                                      (($a =< A) and (A =< $z)) or
+                                      (($A =< A) and (A =< $Z))),
+                                     ((B == $[) or (B == $]) or
+                                      (($0 =< B) and (B =< $9)) or
+                                      (($a =< B) and (B =< $z)) or
+                                      (($A =< B) and (B =< $Z))) ->
+    parse_command_part(Rest, Cmd#irc_cmd{source=#p10server{numeric=irc_numerics:p10b64_to_int([A,B])}});
+parse_line([A,B,C,D,E,$\s|Rest], Cmd) ->
+    case irc_numerics:p10b64_to_int([A,B,C,D,E]) of 
+        Num when is_integer(Num) ->
+            parse_command_part(Rest, Cmd#irc_cmd{source=#p10user{numeric=Num}});
+        {error, Reason} ->
+            ?ERR("Need to fix this code.", []),
+            erlang:error(Reason)
+    end;
+parse_line([$:|Rest], Cmd) ->
+    parse_prefix_part(Rest, Cmd);
+parse_line(Line, Cmd) ->
+    parse_command_part(Line, Cmd).
 
-%%%-------------------------------------------------------------------
-%% @spec message(Line::string(), Cmd::#irc_cmd{}) -> #irc_cmd{}
-%% @private
-%% @doc Parse a full message, updating Cmd with its contents
-%% @end
-%%%-------------------------------------------------------------------
-message([$:|Line], Cmd) ->
+parse_prefix_part(Line, Cmd) ->
     {Prefix, Rest} = split(Line),
-    CmdWithSource = prefix(Prefix, Cmd),
-    message(Rest, CmdWithSource);
-message(Line, Cmd) ->
-    {CmdString, Rest} = split(Line),
-    CmdWithCmd = command(CmdString, Cmd),
-    params(Rest, CmdWithCmd).
+    CmdWithUser = parse_prefix(Prefix, Cmd#irc_cmd{source=#user{}}),
+    parse_command_part(Rest, CmdWithUser).
 
-%% Parse a source prefix.
-prefix(Prefix, Cmd) ->
-    Source = case split($@, Prefix) of
-        {Name, []} ->
-            case lists:member($., Name) of
-                true -> #irc_server{host=Name};
-                false -> #user{nick=Name}
+parse_prefix(Prefix, #irc_cmd{source=User} = Cmd) ->
+    case string:tokens(Prefix, "@") of
+        [Nick] -> 
+            case lists:member($., Prefix) of
+                true ->
+                    Cmd#irc_cmd{source=#irc_server{host=Nick}};
+                false ->
+                    Cmd#irc_cmd{source=User#user{nick=Nick}}
             end;
-        {Name, Host} ->
-            {Nick, User} = split($!, Name),
-            #user{nick=Nick, name=User, host=Host}
-    end,
-    Cmd#irc_cmd{source=Source}.
+        [NickSpec, HostSpec] -> 
+            case string:tokens(NickSpec, "!") of
+                [Nick, [$~|HostUser]] ->
+                    Cmd#irc_cmd{source=User#user{nick=Nick, name=HostUser, host=HostSpec}};
+                [Nick, HostUser] ->
+                    Cmd#irc_cmd{source=User#user{nick=Nick, name=HostUser, host=HostSpec}};
+                [_Host] ->
+                    Cmd#irc_cmd{source=User#user{nick=NickSpec, host=HostSpec}}
+            end
+    end.
 
-%% Parse the command name or number.
-command(Num = [D1,D2,D2], Cmd) when ?IS_DIGIT(D1),
-                                    ?IS_DIGIT(D2),
-                                    ?IS_DIGIT(D2) ->
-    Cmd#irc_cmd{name=irc_numerics:numeric_to_atom(Num)};
-command(Name, Cmd) ->
-    Cmd#irc_cmd{name=irc_commands:from_list(Name)}.
+parse_command_part([D1,D2,D3,$\s|Rest], Cmd) when ?IS_DIGIT(D1),
+                                              ?IS_DIGIT(D2),
+                                              ?IS_DIGIT(D3) ->
+    Cmd#irc_cmd{name=irc_numerics:numeric_to_atom([D1,D2,D3]),
+            args=nonl(Rest)};
+parse_command_part([D1,D2,D3|Rest], Cmd) when ?IS_DIGIT(D1),
+                                              ?IS_DIGIT(D2),
+                                              ?IS_DIGIT(D3) ->
+    Cmd#irc_cmd{name=irc_numerics:numeric_to_atom([D1,D2,D3]),
+                args=nonl(Rest)};
+parse_command_part(Rest, Cmd) ->
+    case split(Rest) of
+        {CommandName, ""} ->
+            Cmd#irc_cmd{name=irc_commands:from_list(nonl(CommandName)),
+                        args=[]};
+        {CommandName, Args} ->
+            Cmd#irc_cmd{name=irc_commands:from_list(CommandName),
+                        args=nonl(Args)}
+    end.
 
-%% Parse the parameters.
-params(Rest, Cmd) ->
-    Args = param(Rest, 14, Cmd),
-    Cmd#irc_cmd{args = lists:reverse(Args)}.
-
-%% Parse one parameter, including the full trailing parameter.
-param([], _N, Args) ->
-    Args;
-param([$:|Line], _N, Args) ->
-    [Line|Args];
-param(Line, 0, Args) ->
-    [Line|Args];
-param(Line, N, Args) ->
-    {Arg, Rest} = split(Line),
-    param(Rest, N-1, [Arg|Args]).
-
-%% Split a line at the first space
 split(Line) ->
     split($\s, Line).
 
-%% Split a line at the first space or point where the fun first fails.
-%% Like lists:splitwith, but it drops the matching character entirely
-%% rather than leaving it in the second string.
 split(Char, Line) when is_integer(Char) ->
     split(fun (X) when X == Char -> false; (_) -> true end, Line);
 split(Fun, Line) when is_function(Fun) ->
@@ -111,6 +102,39 @@ split(Fun, Line) when is_function(Fun) ->
         {First, []} ->
             {First, []}
     end.
+
+%% No newline (nonl)
+nonl([$\r,$\n]) -> [];
+nonl([$\n]) -> [];
+nonl([]) -> [];
+nonl([H|T]) -> [H|nonl(T)].
+
+join(_, []) ->
+    [];
+join(_, [String]) when is_list(String) ->
+    String;
+join(Sep, Strings) when is_integer(Sep) ->
+    join([Sep], Strings);
+join(Sep, Strings) when is_list(Sep), length(Strings) > 1 ->
+     join(Sep, tl(Strings), [hd(Strings)]).
+
+join(_Sep, [], Acc) ->
+    lists:append(lists:reverse(Acc));
+join(Sep, [Hd|Tl], Acc) ->
+    join(Sep, Tl, [Hd,Sep|Acc]).
+
+-ifdef(EUNIT).
+
+join_test() ->
+    ?assertMatch("This is a test.",
+                 join($\s, ["This", "is", "a", "test."])).
+
+join_2_test() ->
+    ?assertMatch("This",
+                 join($\s, ["This"])).
+
     
-%% Retrieve the part of the line up to the first newline character.
-nonl(L) -> lists:takewhile(fun(C) -> ((C /= $\r) and (C /= $\n)) end, L).
+split_test() ->
+    ?assertMatch({"this", "is a test"}, split("this is a test")).
+
+-endif.
