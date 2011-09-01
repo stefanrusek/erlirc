@@ -11,7 +11,10 @@
 -behaviour(gen_server).
 
 -include_lib("logging.hrl").
+
+-ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
+-endif.
 
 %% API
 -export([listen/2
@@ -241,7 +244,6 @@ new_client(Parent, _ListenSock, ClientSock) ->
             exit(Else)
     end.
 
-
 gen_tcp_options(Options) ->
     lists:filter(fun (O) -> my_option(O) =:= false end,
                  proplists:unfold(proplists:normalize(Options, []))).
@@ -250,6 +252,8 @@ default_client_handler(Parent, ClientSocket) ->
     gen_tcp:controlling_process(ClientSocket, Parent),
     Parent ! {?MODULE, new_client, ClientSocket},
     ok.
+
+-ifdef(EUNIT).
 
 gtcps_test() ->
     TestPort = 56432,
@@ -276,3 +280,6 @@ gtcps_test() ->
             ?assertMatch(no_timeout, timeout)
     end,
     ok = close(Pid).
+
+-endif.
+

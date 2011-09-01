@@ -2,35 +2,44 @@ VSN          := 0.1
 ERL          ?= erl
 EBIN_DIRS    := $(wildcard lib/*/ebin)
 APP          := erlirc
+.PHONY: all compile deps docs clean build-plt dialyze dialyze-erlirc
 
-all: erl ebin/$(APP).app
+all: compile
 
-erl: ebin lib
-	@$(ERL) -pa $(EBIN_DIRS) -noinput +B \
-	    -eval 'case make:all() of up_to_date -> halt(0); error -> halt(1) end.'
+compile:
+	rebar compile
+
+deps:
+	rebar get-deps
 
 docs:
-	@erl -noshell -run edoc_run application '$(APP)' '"."' \
-	    '[{def, {vsn, "$(VSN)"}}]'
+	rebar skip_deps=true doc
 
-docs-private:
-	@erl -noshell -run edoc_run application '$(APP)' '"."' \
-	    '[{def, {vsn, "$(VSN)"}}, {private, true}]'
+eunit:
+	rebar skip_deps=true eunit
+
+distclean: clean
+	@echo "removing deps:"
+	rm -fr deps/*
 
 clean: 
 	@echo "removing:"
-	@rm -fv ebin/*.beam ebin/*.app
+	rebar clean
 
-ebin/$(APP).app: src/$(APP).app
-	@cp -v src/$(APP).app $@
+xref: compile
+	rebar skip_deps=true xref
 
-ebin:
-	@mkdir ebin
+build-plt: erlirc_dializer.plt
 
-lib:
-	@mkdir lib
+erlirc_dialyzer.plt:
+	dialyzer --build_plt -r deps -r src --output_plt $@ \
+		--apps kernel crypto stdlib sasl inets debugger \
+		       compiler edoc tools mnesia ssl
 
-dialyzer: erl
-	@dialyzer -c ebin
+dialyze: dialyze-erlirc
 
-.PHONY: docs docs-private
+dialyze-erlirc:
+	dialyzer --src -r src --plt erlirc_dialyzer.plt \
+	-Werror_handling -Wrace_conditions -Wbehaviours
+
+.PHONY: build-plt docs dialyze dialyze-erlirc xref

@@ -13,7 +13,10 @@
 
 -include_lib("irc.hrl").
 -include_lib("logging.hrl").
+
+-ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
+-endif.
 
 -export([parse_line/1]).
 
@@ -56,15 +59,15 @@ message(Line, Cmd) ->
 
 %% Parse a source prefix.
 prefix(Prefix, Cmd) ->
-    case split($@, Prefix) of
+    Source = case split($@, Prefix) of
         {Name, []} ->
             case lists:member($., Name) of
-                true -> Source = #irc_server{host=Name};
-                false -> Source = #user{nick=Name}
+                true -> #irc_server{host=Name};
+                false -> #user{nick=Name}
             end;
         {Name, Host} ->
             {Nick, User} = split($!, Name),
-            Source = #user{nick=Nick, name=User, host=Host}
+            #user{nick=Nick, name=User, host=Host}
     end,
     Cmd#irc_cmd{source=Source}.
 

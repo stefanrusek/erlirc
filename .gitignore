@@ -1,8 +1,11 @@
-/ebin
-/src/TAGS
-/priv/log/*
+/deps
 /doc/*
+/ebin
+/erlirc_dialyzer.plt
+/priv/log/*
+/src/TAGS
 /misc/*
-/erl_crash.dump
+erl_crash.dump
+.eunit
 *~
 *.sw?

@@ -10,8 +10,12 @@
 -include_lib("irc.hrl").
 
 %% API
--export([]).
--compile(export_all).
+-export([join/1,
+         part/1, part/2,
+         nick/1,
+         yourhost/2,
+         created/1,
+         topic/0]).
 
 %%====================================================================
 %% API

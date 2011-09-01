@@ -10,7 +10,6 @@
 -behaviour(gen_irc_server).
 
 -include_lib("logging.hrl").
--include_lib("eunit/include/eunit.hrl").
 -include_lib("kernel/include/inet.hrl").
 
 %% API
