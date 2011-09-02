@@ -37,7 +37,7 @@ init([PL]) ->
     end.
 
 %% @private
-handle_event({msg, SendPid, _CmdInfo, #irc_cmd{ name = isupport}},
+handle_event({msg, SendPid, _CmdInfo, isupport},
              #state { st = idle, channels = Chans } = State) ->
     error_logger:info_report([got, isupport]),
     [join_channel(SendPid, C) || C <- Chans],

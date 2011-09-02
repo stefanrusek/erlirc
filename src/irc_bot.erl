@@ -142,8 +142,9 @@ handle_call(Call, _From, State) ->
 %% @end
 %%--------------------------------------------------------------------
 handle_cast({client, Pid, Term}, State) ->
+    PTerm = irc_cmd:parse(Term),
     handle_client_cmd(Pid, hd(dict:fetch(Pid,State#state.connections)),
-                      Term, State);
+                      PTerm, State);
 handle_cast(Msg, State) ->
     ?WARN("Unexpected cast ~p", [Msg]),
     {noreply, State}.
@@ -160,7 +161,7 @@ handle_info(Info, State) ->
     ?WARN("Unexpected info ~p", [Info]),
     {noreply, State}.
 
-handle_client_cmd(Pid, _Coninfo, connected, State = #state{conf=Conf}) ->
+handle_client_cmd(Pid, _Coninfo, {status, connected}, State = #state{conf=Conf}) ->
     irc_connection:send_cmd(Pid, #irc_cmd{name=nick,
                                           args=[{name, nick(Conf)}]}),
     irc_connection:send_cmd(Pid, #irc_cmd{name=user,
@@ -174,13 +175,8 @@ handle_client_cmd(_Pid, #coninfo{host=Host,port=Port},
                             proplists:get_value(facility, A),
                             proplists:get_value(text, A)]),
     {noreply, State};
-handle_client_cmd(Pid, _cmdinfo, #irc_cmd{name=ping, args=[{token, T}]}, S) ->
-    irc_connection:send_cmd(Pid, #irc_cmd{name=pong, args=[{token, T}]}),
-    {noreply, S};
-
-handle_client_cmd(_Pid, #coninfo { host = Host, port = Port},
-                  Command, #state { plugin_mgr = undefined } = State) ->
-    info(Host, Port, Command),
+handle_client_cmd(Pid, _cmdinfo, {ping, S1, _}, State) ->
+    irc_connection:send_cmd(Pid, irc_cmd:pong(S1)),
     {noreply, State};
 handle_client_cmd(Pid, #coninfo { host = Host, port = Port} = ConnInfo,
                   Command, #state { plugin_mgr = Mgr } = State) ->
@@ -249,4 +245,4 @@ parse_conf(PL) ->
     end.
 
 info(Host, Port, Command) ->
-    ?INFO("~s:~p -- command:~n ~s", [Host, Port, irc_cmd:format_irc_cmd(Command)]).
+    ?INFO("~s:~p -- command:~n ~s", [Host, Port, irc_cmd:format(Command)]).
