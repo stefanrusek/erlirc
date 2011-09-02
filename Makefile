@@ -29,6 +29,9 @@ clean:
 xref: compile
 	rebar skip_deps=true xref
 
+test-console:
+	erl -pa ebin deps/*/ebin
+
 build-plt: erlirc_dializer.plt
 
 erlirc_dialyzer.plt:
