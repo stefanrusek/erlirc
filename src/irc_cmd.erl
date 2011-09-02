@@ -12,21 +12,43 @@
 %% API
 -export([join/1,
          part/1, part/2,
+         pong/1,
          nick/1,
          yourhost/2,
          created/1,
          topic/0]).
 
--export([format_irc_cmd/1]).
+-export([parse/1]).
+-export([format/1]).
+
+-type status() :: connected.
+
+-type t() :: {ping, string(), string()}
+           | isupport
+           | {status, status()}
+           | #irc_cmd{}.
+-export_type([t/0, status/0]).
+
 %%====================================================================
 %% API
 %%====================================================================
 
-format_irc_cmd(#irc_cmd{ name = Name,
-                         args = Args,
-                         source = Source,
-                         target = Target,
-                         ref = Ref, ctcp = Ctcp }) ->
+parse(connected) -> {status, connected};
+parse(#irc_cmd { name = ping, args = [{servers, {Server1, Server2}}] }) ->
+    {ping, Server1, Server2};
+parse(#irc_cmd { name = isupport }) ->
+    isupport;
+parse(#irc_cmd{} = Cmd) ->
+    Cmd.
+
+format({ping, _, _}) -> "PING!";
+format(isupport) -> "ISUPPORT";
+format({status, Status}) -> "STATUS CHANGE --> " ++ atom_to_list(Status);
+format(#irc_cmd{ name = Name,
+                 args = Args,
+                 source = Source,
+                 target = Target,
+                 ref = Ref, ctcp = Ctcp }) ->
     io_lib:format("Cmd: ~p~n  args: ~p~n  source: ~p~n  target: ~p~n  ref/ctcp: ~p/~p~n",
                   [Name, Args, Source, Target, Ref, Ctcp]).
 
@@ -51,6 +73,10 @@ created({Date,Time}) ->
 
 topic() ->
     #irc_cmd{name=topic}.
+
+pong(ServerToken) ->
+    #irc_cmd { name = pong,
+               args = [{servers, {ServerToken, ""}}] }.
 
 %%====================================================================
 %% Internal functions
