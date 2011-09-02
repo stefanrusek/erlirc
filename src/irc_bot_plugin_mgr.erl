@@ -11,6 +11,8 @@
 start_link(Reg) ->
     gen_event:start_link(Reg).
 
+notify(undefined, _, _, _) ->
+    ok;
 notify(Who, SendPid, CmdInfo, Command) ->
     gen_event:notify(Who, {msg, SendPid, CmdInfo, Command}).
 
