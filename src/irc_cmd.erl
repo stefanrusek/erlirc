@@ -17,9 +17,18 @@
          created/1,
          topic/0]).
 
+-export([format_irc_cmd/1]).
 %%====================================================================
 %% API
 %%====================================================================
+
+format_irc_cmd(#irc_cmd{ name = Name,
+                         args = Args,
+                         source = Source,
+                         target = Target,
+                         ref = Ref, ctcp = Ctcp }) ->
+    io_lib:format("Cmd: ~p~n  args: ~p~n  source: ~p~n  target: ~p~n  ref/ctcp: ~p/~p~n",
+                  [Name, Args, Source, Target, Ref, Ctcp]).
 
 join(Channel) ->
     #irc_cmd{name=join,args=[{channels, [Channel]}]}.
