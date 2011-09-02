@@ -69,9 +69,5 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 
 join_channel(SendPid, Chan) ->
-    irc_connection:send_cmd(SendPid, join(Chan)).
-
-join(C) ->
-    #irc_cmd { name = join,
-               args = [{channels, [C]}]}.
+    irc_connection:send_cmd(SendPid, irc_cmd:join(Chan)).
 
