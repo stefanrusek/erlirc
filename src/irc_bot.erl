@@ -180,12 +180,12 @@ handle_client_cmd(Pid, _cmdinfo, #irc_cmd{name=ping, args=[{token, T}]}, S) ->
 
 handle_client_cmd(_Pid, #coninfo { host = Host, port = Port},
                   Command, #state { plugin_mgr = undefined } = State) ->
-    ?INFO("~s:~p -- command: ~p", [Host, Port, Command]),    
+    info(Host, Port, Command),
     {noreply, State};
 handle_client_cmd(Pid, #coninfo { host = Host, port = Port} = ConnInfo,
                   Command, #state { plugin_mgr = Mgr } = State) ->
     irc_bot_plugin_mgr:notify(Mgr, Pid, ConnInfo, Command),
-    ?INFO("~s:~p -- command: ~p", [Host, Port, Command]),
+    info(Host, Port, Command),
     {noreply, State}.
 
 %%--------------------------------------------------------------------
@@ -248,5 +248,5 @@ parse_conf(PL) ->
             {error, config_error}
     end.
 
-
-
+info(Host, Port, Command) ->
+    ?INFO("~s:~p -- command:~n ~s", [Host, Port, irc_cmd:format_irc_cmd(Command)]).
