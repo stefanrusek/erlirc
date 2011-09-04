@@ -40,7 +40,7 @@ init([PL]) ->
 handle_event({msg, SendPid, _CmdInfo, isupport},
              #state { st = idle, channels = Chans } = State) ->
     error_logger:info_report([got, isupport]),
-    [join_channel(SendPid, C) || C <- Chans],
+    irc_connection:send(SendPid, {join, Chans}),
     {ok, State#state { st = connected }};
 handle_event({msg, _, _, _}, #state { st = idle } = State) ->
     {ok, State};
@@ -67,7 +67,3 @@ code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
 %%%===================================================================
-
-join_channel(SendPid, Chan) ->
-    irc_connection:send_cmd(SendPid, irc_cmd:join(Chan)).
-

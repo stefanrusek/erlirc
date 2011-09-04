@@ -176,7 +176,7 @@ handle_client_cmd(_Pid, #coninfo{host=Host,port=Port},
                             proplists:get_value(text, A)]),
     {noreply, State};
 handle_client_cmd(Pid, _cmdinfo, {ping, S1, _}, State) ->
-    irc_connection:send_cmd(Pid, irc_cmd:pong(S1)),
+    irc_connection:send(Pid, {pong, S1}),
     {noreply, State};
 handle_client_cmd(Pid, #coninfo { host = Host, port = Port} = ConnInfo,
                   Command, #state { plugin_mgr = Mgr } = State) ->

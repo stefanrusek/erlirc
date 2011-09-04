@@ -26,6 +26,7 @@
          start_link/2,
          sock_start/3,
          send_line/2,
+         send/2,
          send_cmd/2,
          close/1,
          connect/2,
@@ -77,6 +78,9 @@ sock_start(Owner, Socket, Options) ->
 
 send_line(Con, Line) ->
     gen_server:cast(Con, {send_line, Line}).
+
+send(Con, Cmd) ->
+    send_cmd(Con, irc_cmd:unparse(Cmd)).
 
 send_cmd(Con, Cmd = #irc_cmd{}) ->
     Line = irc_messages:to_list(Cmd),
