@@ -93,6 +93,12 @@ init([Conf]) ->
                 not_found ->
                     undefined
             end,
+    case look_conf(plugins, Conf) of
+        {ok, Plugs} ->
+            add_plugins(PGMgr, Plugs);
+        not_found ->
+            undefined
+    end,
     Connections = case look_conf(connections, Conf) of
                       {ok, Conns} ->
                           connect_servers(Conns);
@@ -248,6 +254,12 @@ parse_conf(PL) ->
         error:{badmatch, _} ->
             {error, config_error}
     end.
+
+add_plugins(_, []) ->
+    ok;
+add_plugins(PMgr, [{Plugin, Args} | Rest]) ->
+    ok = irc_bot_plugin_mgr:add_plugin(PMgr, Plugin, Args),
+    add_plugins(PMgr, Rest).
 
 connect_servers([]) ->
     [];
