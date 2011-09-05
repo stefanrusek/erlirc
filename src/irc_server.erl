@@ -143,10 +143,10 @@ handle_info({irc, user, Ref, Pid, {nick, N, Pass}}, S = #state{users=U}) ->
                     NewUsers = [NewUser|U],
                     send(srv_msg({ok, irc_user:gproc_name(S#state.net, N)}, Ref, S2), Pid),
                     {noreply, S2#state{users=NewUsers}}
-            end;
-        {false, S2} ->
-            send(srv_msg({error, passwdmismatch}, Ref, S2), Pid),
-            {noreply, S2}
+            end
+        %% {false, S2} ->
+        %%     send(srv_msg({error, passwdmismatch}, Ref, S2), Pid),
+        %%     {noreply, S2}
     end;
 
 %% Existing user changing nick

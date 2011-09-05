@@ -134,7 +134,7 @@ handle_info({irc, channel, Ref, From, Msg}, Chan) ->
     {noreply, NewChan};
 handle_info({'DOWN', Ref, process, Pid, _}, C = #chan{members=Members}) ->
     case find_member(Ref, Members) of
-        no_member ->
+        non_member ->
             ?WARN("DOWN from unmonitored process, ~p", [Pid]),
             {noreply, C};
         Pid -> {noreply, C};

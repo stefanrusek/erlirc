@@ -525,11 +525,12 @@ to_list(topicinfo, Args, #irc_cmd{source=#user{nick=Nick}}) ->
     Author = proplists:get_value(topic_set_by, Args),
     TS = proplists:get_value(topic_set_at, Args),
     Chan = proplists:get_value(channel, Args),
-    string:join(" ", [irc_numeric:atom_to_numeric(topicinfo),
-                      Nick,
-                      Chan,
-                      Author,
-                      now_to_unix_ts_list(TS)]);
+    string:join([irc_numeric:atom_to_numeric(topicinfo),
+                 Nick,
+                 Chan,
+                 Author,
+                 now_to_unix_ts_list(TS)],
+               " ");
 
 to_list(PingPong, [{servers, {S1, ""}}], _Cmd) when PingPong =:= ping; PingPong =:= pong ->
     string:to_upper(atom_to_list(PingPong)) ++ " " ++ S1;
@@ -579,11 +580,11 @@ iso_8601_fmt(DateTime) ->
 iso_8601_fmt(DateTime, TzOffset) when TzOffset >= 0 ->
     {{Year,Month,Day},{Hour,Min,Sec}} = DateTime,
     io_lib:format("~4.10.0B-~2.10.0B-~2.10.0BT~2.10.0B:~2.10.0B:~2.10.0B+~2.10.0B",
-                  [Year, Month, Day, Hour, Min, Sec, TzOffset]);
-iso_8601_fmt(DateTime, TzOffset) when TzOffset < 0 ->
-    {{Year,Month,Day},{Hour,Min,Sec}} = DateTime,
-    io_lib:format("~4.10.0B-~2.10.0B-~2.10.0BT~2.10.0B:~2.10.0B:~2.10.0B-~2.10.0B",
-                  [Year, Month, Day, Hour, Min, Sec, 0 - TzOffset]).
+                  [Year, Month, Day, Hour, Min, Sec, TzOffset]).
+%% iso_8601_fmt(DateTime, TzOffset) when TzOffset < 0 ->
+%%     {{Year,Month,Day},{Hour,Min,Sec}} = DateTime,
+%%     io_lib:format("~4.10.0B-~2.10.0B-~2.10.0BT~2.10.0B:~2.10.0B:~2.10.0B-~2.10.0B",
+%%                   [Year, Month, Day, Hour, Min, Sec, 0 - TzOffset]).
 
 now_to_unix_ts(Tm) when is_tuple(Tm) ->
     calendar:datetime_to_gregorian_seconds(Tm) -
