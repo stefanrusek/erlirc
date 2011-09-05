@@ -90,11 +90,17 @@ init([Conf]) ->
     PGMgr = case look_conf(plugin_mgr, Conf) of
                 {ok, Name} ->
                     Name;
-                undefined ->
+                not_found ->
                     undefined
             end,
+    Connections = case look_conf(connections, Conf) of
+                      {ok, Conns} ->
+                          connect_servers(Conns);
+                      not_found ->
+                          []
+                  end,
     {ok, #state{ conf=Conf,
-                 connections = dict:new(),
+                 connections = dict:from_list(Connections),
                  plugin_mgr  = PGMgr }}.
 
 %%--------------------------------------------------------------------
@@ -125,10 +131,9 @@ handle_call({add_plugin, Plugin, Args}, _From, #state { plugin_mgr = Name } = St
 handle_call(connections, _From, State = #state{connections=C}) ->
     {reply, {ok, dict:to_list(C)}, State};
 handle_call({connect, Host, Port}, _From, State) ->
-    {ok, Pid} = irc_connection:start_link(Host, Port, [{sendfn, fun client_cmd/2}]),
+    {Pid, ConInfo} = connect_servers([{Host, Port}]),
     {reply, {ok, Pid}, 
-     State#state{connections=dict:append(Pid, #coninfo{host=Host, port=Port},
-                                         State#state.connections)}};
+     State#state{ connections = dict:append(Pid, ConInfo, State#state.connections) }};
 handle_call(Call, _From, State) ->
     ?WARN("Unexpected call ~p.", [Call]),
     {noreply, State}.
@@ -243,6 +248,13 @@ parse_conf(PL) ->
         error:{badmatch, _} ->
             {error, config_error}
     end.
+
+connect_servers([]) ->
+    [];
+connect_servers([{Host, Port} | Rest]) ->
+    {ok, Pid} = irc_connection:start_link(Host, Port, [{sendfn, fun client_cmd/2}]),
+    [{Pid, #coninfo { host = Host, port = Port }} |
+     connect_servers(Rest)].
 
 info(Host, Port, Command) ->
     ?INFO("~s:~p -- command:~n ~s", [Host, Port, irc_cmd:format(Command)]).
