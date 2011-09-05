@@ -114,11 +114,11 @@ init([{Server, Mod, Args}]) ->
     init(Server, Mod, Mod:init([{irc_server, Server} | Args])).
 
 init(Server = #irc_server{net=Net,host=Host}, Mod, {ok, MS, Timeout}) ->
-    true = gproc:reg(gproc:name({irc_server, Net, Host}), self()),
+    true = gproc:add_local_name({irc_server, Net, Host}),
     {ok, #state{server=Server,
                 mod=Mod, mod_state=MS}, Timeout};
 init(Server = #irc_server{net=Net,host=Host}, Mod, {ok, MS}) ->
-    true = gproc:reg(gproc:name({irc_server, Net, Host}), self()),
+    true = gproc:add_local_name({irc_server, Net, Host}),
     {ok, #state{server=Server,
                 mod=Mod, mod_state=MS}};
 init(_Server, _Mod, Other) ->
@@ -152,7 +152,7 @@ handle_call({listen, Addr, Port}, _From, State = #state{listeners=L, server=IrcS
 handle_call({nick, Pid, Nick, Pass}, _From, S = #state{server=Server})
   when is_pid(Pid) ->
     GprocUserName = irc_user:gproc_name(Server#irc_server.net, Nick),
-    case gproc:where(GprocUserName) of
+    case gproc:lookup_local_name(GprocUserName) of
         undefined ->
             case modapply(handle_nick, [Nick, Pass], S) of
                 {nick_ok, NewMS} ->

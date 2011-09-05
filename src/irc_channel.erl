@@ -19,8 +19,7 @@
 %% API
 -export([start_link/2
          ,start_monitor/2
-         ,shutdown/1
-         ,gproc_name/1]).
+         ,shutdown/1]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -50,7 +49,7 @@ start_monitor(Net, Name) ->
     end.
 
 gproc_name(#chan{net=Net,name=Name})->
-    gproc:name({irc_chan, Net, Name}).
+    {irc_chan, Net, Name}.
 
 shutdown(Pid) ->
     gen_server:call(Pid, shutdown).
@@ -69,7 +68,7 @@ shutdown(Pid) ->
 %% @end
 %%--------------------------------------------------------------------
 init([Chan = #chan{}]) ->
-    true = gproc:reg(gproc_name(Chan),self()),
+    true = gproc:add_local_name(gproc_name(Chan)),
     {ok, Chan#chan{topic=undefined,
                    mode=public}}.
 

@@ -56,7 +56,7 @@ debug() ->
 gproc_name(#state{net=Net,name=Name})->
     gproc_name(Net, Name).
 gproc_name(Net, Name) ->
-    gproc:name({irc_server, Net, Name}).
+    {irc_server, Net, Name}.
 
 shutdown(Server) ->
     gen_server:call(Server, shutdown).
@@ -78,7 +78,7 @@ listen(Server, Port) ->
 %% @end
 %%--------------------------------------------------------------------
 init([S = #state{}]) ->
-    true = gproc:reg(gproc_name(S),self()),
+    true = gproc:add_local_name(gproc_name(S)),
     {ok, S#state{self=#irc_server{net=S#state.net,host=S#state.name,pid=self()}}}.
 
 %%--------------------------------------------------------------------
