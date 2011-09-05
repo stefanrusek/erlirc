@@ -224,9 +224,7 @@ call(Who, What) ->
 client_cmd(Owner, Cmd) ->
     gen_server:cast(Owner, {client, self(), Cmd}).
 
-nick(#state{conf=Conf}) ->
-    nick(Conf);
-nick(#conf{nick=Nick}) ->
+nick(#conf{ nick=Nick}) ->
     Nick.
 
 
