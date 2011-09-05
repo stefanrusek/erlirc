@@ -137,7 +137,7 @@ handle_call({add_plugin, Plugin, Args}, _From, #state { plugin_mgr = Name } = St
 handle_call(connections, _From, State = #state{connections=C}) ->
     {reply, {ok, dict:to_list(C)}, State};
 handle_call({connect, Host, Port}, _From, State) ->
-    {Pid, ConInfo} = connect_servers([{Host, Port}]),
+    [{Pid, ConInfo}] = connect_servers([{Host, Port}]),
     {reply, {ok, Pid}, 
      State#state{ connections = dict:append(Pid, ConInfo, State#state.connections) }};
 handle_call(Call, _From, State) ->
