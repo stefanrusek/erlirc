@@ -62,7 +62,7 @@ init([Name, PlugMgrName, Opts]) ->
     PluginMgr = {'Plugin Manager', {irc_bot_plugin_mgr, start_link, [{local, PlugMgrName}]},
                  permanent, 2000, worker, [irc_bot_plugin_mgr]},
 
-    {ok, {SupFlags, [BotClient, PluginMgr]}}.
+    {ok, {SupFlags, [PluginMgr, BotClient]}}.
 
 %%%===================================================================
 %%% Internal functions

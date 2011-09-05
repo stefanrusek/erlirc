@@ -11,5 +11,5 @@ t() ->
             {username, "My Bot Username"},
             {nick, "erlangbot"},
             {connections, [{"irc.baconsvin.dk", 6667}]},
-            {plugins, [{irc_chan_handler, [Args]}]}],
-    {ok, Pid} = irc_bot_sup:start_link(test_bot, test_bot_plgin, Opts).
+            {plugins, [{ircb_chan_handler, [Args]}]}],
+    {ok, Pid} = irc_bot_sup:start_link(test_bot, test_bot_plugin, Opts).
