@@ -222,8 +222,8 @@ default_role(#chan{members=_}) -> user.
 default_mode(op) -> "@";
 default_mode(user) -> "".
 
-members(#chan{members=M}) -> M;
-members(M) when is_list(M) -> M.
+members(#chan{members=M}) -> M.
+%% members(M) when is_list(M) -> M.
 
 broadcast(Msg, Members) ->
     lists:foreach(fun (Member) ->

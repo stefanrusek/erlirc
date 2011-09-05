@@ -26,6 +26,7 @@
          user_to_list/1,
          numeric_to_list/4, numeric_to_list/5]).
 
+-export([iso_8601_fmt/2]).
 %%====================================================================
 %% API
 %%====================================================================
@@ -259,9 +260,9 @@ encode_ctcp_delims(_State, [{OtherState, Part}|Parts], Acc) ->
 %%--------------------------------------------------------------------
 parse_error(Cmd, {Reason, Text}) ->
     Cmd#irc_cmd{args = [{error, string:strip(Reason, right, $:)},
-                    {text, string:strip(Text, both, $\s)}]};
-parse_error(Cmd, [Reason | Text]) ->
-    Cmd#irc_cmd{args = [{error, Reason}, {text, lists:append(Text)}]}.
+                    {text, string:strip(Text, both, $\s)}]}.
+%%parse_error(Cmd, [Reason | Text]) ->
+%%    Cmd#irc_cmd{args = [{error, Reason}, {text, lists:append(Text)}]}.
 
 parse_error(Code, [Info, Text], Cmd) ->
     case string:tokens(Info, " ") of
@@ -580,11 +581,11 @@ iso_8601_fmt(DateTime) ->
 iso_8601_fmt(DateTime, TzOffset) when TzOffset >= 0 ->
     {{Year,Month,Day},{Hour,Min,Sec}} = DateTime,
     io_lib:format("~4.10.0B-~2.10.0B-~2.10.0BT~2.10.0B:~2.10.0B:~2.10.0B+~2.10.0B",
-                  [Year, Month, Day, Hour, Min, Sec, TzOffset]).
-%% iso_8601_fmt(DateTime, TzOffset) when TzOffset < 0 ->
-%%     {{Year,Month,Day},{Hour,Min,Sec}} = DateTime,
-%%     io_lib:format("~4.10.0B-~2.10.0B-~2.10.0BT~2.10.0B:~2.10.0B:~2.10.0B-~2.10.0B",
-%%                   [Year, Month, Day, Hour, Min, Sec, 0 - TzOffset]).
+                  [Year, Month, Day, Hour, Min, Sec, TzOffset]);
+iso_8601_fmt(DateTime, TzOffset) when TzOffset < 0 ->
+    {{Year,Month,Day},{Hour,Min,Sec}} = DateTime,
+    io_lib:format("~4.10.0B-~2.10.0B-~2.10.0BT~2.10.0B:~2.10.0B:~2.10.0B-~2.10.0B",
+                  [Year, Month, Day, Hour, Min, Sec, 0 - TzOffset]).
 
 now_to_unix_ts(Tm) when is_tuple(Tm) ->
     calendar:datetime_to_gregorian_seconds(Tm) -

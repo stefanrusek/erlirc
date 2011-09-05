@@ -110,7 +110,7 @@ login_nick({irc, _, #irc_cmd{name=nick, args=Args}},
             {next_state, login_nick, S}
     end;
 login_nick({irc, _, _}, State) ->
-    csend(State, err_nonicknamegiven),
+    csend(State, #irc_cmd { name = err_nonicknamegiven }),
     {next_state, login_nick, State}.
 
 login_user({irc, _, #irc_cmd{name=user,args=Args}},
@@ -123,7 +123,7 @@ login_user({irc, _, #irc_cmd{name=user,args=Args}},
     welcome(State#state{user=User});
 login_user(Cmd = {irc, _, _}, State) ->
     ?INFO("Got ~p in state login_user", [Cmd]),
-    csend(State, notregistered),
+    csend(State, #irc_cmd { name = notregistered }),
     {next_state, login_user, State}.
 
 welcome(State) ->
